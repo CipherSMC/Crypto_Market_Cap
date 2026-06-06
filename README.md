@@ -1,3 +1,5 @@
+![Crypto Market Cap](CryptoMarketCap.png "Market Cap")
+
 # Crypto Market Cap & Token Analysis (Pine Script® v6)
 
 A versatile TradingView indicator designed to track and visualize the Market Capitalization of the entire crypto market or specific tokens directly on your chart. This tool bridges the gap between price analysis and fundamental market-wide data.
