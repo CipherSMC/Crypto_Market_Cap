@@ -1,0 +1,55 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Cipher_SMC
+
+//@version=6
+indicator("Crypto Market Cap [Cipher_SMC]", shorttitle="Market Cap [Cipher_SMC]", overlay=false, format=format.volume, precision=2)
+
+// --- Group Name: Settings ---
+capType = input.string("TOTAL", "Market Cap Type", options=["TOTAL", "TOTAL2", "TOTAL3", "OTHERS", "Current Asset"], tooltip="TOTAL: Total Market Cap\nTOTAL2: Total Excl. BTC\nTOTAL3: Total Excl. BTC & ETH\nOTHERS: Total Excl. Top 10 assets\nCurrent Asset: Market Cap of the token on the chart (e.g., BTC, SOL, ETH)")
+bullColor = input.color(#089981, "Up Color", inline="Style", tooltip="Color when market cap increases")
+bearColor = input.color(#f23645, "Down Color", inline="Style", tooltip="Color when market cap decreases")
+
+// --- Core Logic ---
+// Construct the ticker based on selection
+// If "Current Asset" is selected, we use the base currency of the symbol (e.g., "BTC" from "BTCUSDT")
+tickerString = capType == "Current Asset" ? "CRYPTOCAP:" + syminfo.basecurrency : "CRYPTOCAP:" + capType
+
+// Fetch the market cap data
+// We use ignore_invalid_symbol=true to prevent the script from crashing if a token doesn't have a CRYPTOCAP ticker
+marketCap = request.security(tickerString, timeframe.period, close, ignore_invalid_symbol=true)
+
+// --- Visuals ---
+isUp = marketCap >= nz(marketCap[1], marketCap)
+currentColor = isUp ? bullColor : bearColor
+
+// Plotting the line and area
+mCapPlot = plot(marketCap, "Market Cap", color=currentColor, style=plot.style_area, linewidth=2)
+zeroPlot = plot(0, "Zero Line", display=display.none)
+
+// Applying a vertical gradient fill
+fill(mCapPlot, zeroPlot, marketCap, 0, color.new(currentColor, 60), color.new(currentColor, 95), "Market Cap Fill")
+
+// Handle Label for current value
+var label lbl = label.new(na, na, "", style=label.style_label_left, textcolor=chart.fg_color, color=#00000000)
+
+if barstate.islast
+    if not na(marketCap)
+        // Format the value based on size
+        labelValue = ""
+        if marketCap >= 1e12
+            labelValue := str.format("{0, number, #.##}T", marketCap / 1e12)
+        else if marketCap >= 1e9
+            labelValue := str.format("{0, number, #.##}B", marketCap / 1e9)
+        else if marketCap >= 1e6
+            labelValue := str.format("{0, number, #.##}M", marketCap / 1e6)
+        else
+            labelValue := str.format("{0, number, #.##}", marketCap)
+            
+        displayName = capType == "Current Asset" ? syminfo.basecurrency : capType
+        label.set_xy(lbl, bar_index, marketCap)
+        label.set_text(lbl, displayName + ": " + labelValue)
+    else
+        // Error message if the symbol is not supported by CRYPTOCAP
+        label.set_xy(lbl, bar_index, 0)
+        label.set_text(lbl, "Market Cap data not found for: " + (capType == "Current Asset" ? syminfo.basecurrency : capType))
+        label.set_textcolor(lbl, bearColor)
